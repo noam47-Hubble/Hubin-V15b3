@@ -438,6 +438,19 @@ def admin_demo():
         return err(str(e), 400)
 
 
+@app.route("/api/admin/event-hub", methods=["POST"])
+def admin_event_hub():
+    """Create the real 'Mare MED IV' hub for the calling admin (content + images from static/events/maremed)."""
+    if not (g.user.is_super or is_hub_admin(g.user.id)):
+        return err("אין הרשאה", 403)
+    import demo
+    try:
+        return jsonify({"ok": True, "hub": demo.load_maremed(g.user)})
+    except ValueError as e:
+        db.session.rollback()
+        return err(str(e), 409 if "קיים" in str(e) else 400)
+
+
 @app.route("/api/super/stats")
 def super_stats():
     if not g.user.is_super:

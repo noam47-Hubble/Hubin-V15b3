@@ -567,5 +567,13 @@ res = subprocess.run([sys.executable, "-c", "import os;os.environ['DATABASE_URL'
                      cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))), capture_output=True, text=True)
 t("auto-migrate old db", res.returncode == 0 and "ישן space {} " in res.stdout.replace("False", "") + " ", res.stdout + res.stderr[-300:])
 os.remove(tmp)
+
+# 15ב.3: real event hub (Mare MED IV)
+t("event hub needs admin", _reg.j("post", "/api/admin/event-hub", json={})[0] == 403)
+code, er = _adm.j("post", "/api/admin/event-hub", json={})
+t("event hub created", code == 200 and er["hub"]["name"].startswith("Mare MED"), er)
+code, hv = _adm.j("get", "/api/hubs/" + er["hub"]["hub_id"] + "/full")
+t("event hub has 8 windows with images", code == 200 and len(hv.get("blocks", [])) == 8 and sum(1 for b in hv["blocks"] if b["image_url"]) >= 5, hv.get("blocks") and len(hv["blocks"]))
+t("event hub twice -> 409", _adm.j("post", "/api/admin/event-hub", json={})[0] == 409)
 print(ok, "pass", bad, "fail")
 sys.exit(1 if bad else 0)

@@ -290,3 +290,84 @@ def clear(owner, everyone=False):
             db.session.delete(u)
         db.session.commit()
     return len(ids)
+
+
+# ---------------------------------------------------------------------------
+# A real event hub (not sample data): Mare MED IV Conference. Images live in static/events/maremed/.
+# ---------------------------------------------------------------------------
+MAREMED_PROGRAM = """13.10 (שני) · 20:00
+ערב גאלה בשגרירות יוון בישראל
+
+14.10 (שלישי) · יום הכנס, Herzog Tower  (התוכנית טנטטיבית)
+08:30-09:00  התכנסות וקפה
+09:00-11:30  פתיחה ומושב ראשון
+  · Welcome and Opening - BMP / Conference
+  · Opening Remarks - HE Amb. Yael Ravia-Zadok (MFA), HE Amb. Maya Solomou, Sabby Mionis, HE Amb. Christos Sofianopoulos
+  · Opportunities Across the Eastern Mediterranean - Adv. Mark Phillips, Herzog
+  · The Mare Med Initiative - Adv. Yanos Gramatidis, BAHAS-GRAMATIDIS
+  · Data Centers as a Regional Enterprise - Chen Herzog, BDO
+  · IAI Welcome - Hezi Israel, IAI
+  · The IMEC Potential, the Adani Global Perspective - Capt. Sumit Chauhan, Haifa Port
+  · The IMEC Forum and Israel Port Company - Pinhas Tsruya, Israel Ports Company
+  · Business Development in the Region - Panayiotis Chrysostomou, Eurobank
+  · Greek-Israel Business Development - Adam Ben-Yehuda, Mizrahi-Tefahot
+  · Bilateral Cooperation in Developing the Eastern Mediterranean - Prof. Yizhaq Makovsky, University of Haifa
+  · Elite Solutions for Maritime Challenges - Alon Shop, Uri Golan, Danchor
+  · Technological Water Solutions From Israel to Greece - BlueGen
+11:30-12:00  הפסקת קפה
+12:00-13:30  מושב שני
+  · Gadot Group Brings the IMEC Vision to Life - Opher Linchevski, Gadot Group
+  · Israel Shipyards: A Maritime Bridge Between Israel and Greece - Zvi Shechterman
+  · IAI presentation: Freedom of Navigation - Sea Lines Security (Sassi Hodeda) · Defence Challenges in the Maritime Arena (Assaf Shtrich) · Evolving Threats to Maritime Ports and Critical Infrastructure (Noam Donenfeld, Avishai Inbar) · Audisea - Next Gen of Acoustic Intelligence (Yair Yanovich)
+  · AI Native Professional Services and Cross-Border Transactions - Nimrod Vroman, After The Flood
+  · Port Electrification Reinvented - Giora Naveh, Parkomat
+  · An Outlook for 2027 Greek-Israeli Tourism - Leon Avigad, Brown Hotels
+  · The Next Steps in IMEC, Israel & Greece - Rafael Dreyfus, Cabynda
+  · Closing Remarks - Mike Bailey
+13:30-14:30  ארוחת צהריים
+14:30-18:00  פגישות B2B
+
+15.10 (רביעי) · 09:00-14:00
+סיור בחיל הים"""
+
+MAREMED_TOPICS = "מים · חדשנות · ביטחון · אנרגיה · שילוח · תשתיות · נמלים · חקלאות · השקעות · IMEC"
+MAREMED_ABOUT = ("ישראל ויוון, בצומת של אירופה, המזרח התיכון, אסיה וצפון אפריקה, חולקות שותפות אסטרטגית וחזון משותף לקידום מזרח הים התיכון כמרכז של חדשנות, קישוריות וצמיחה כלכלית.\n"
+                 "הכנס מפגיש מנהיגים בכירים מעולם העסקים, הממשל, התעשייה ומערכת ההשקעות, בתחומי נמלים, שילוח, חקלאות, מים, ביטחון ואנרגיה, וזו הפעם הרביעית שהוא נערך. מטרתו: רשת B2B דינמית ואפקטיבית.")
+
+
+def load_maremed(owner):
+    """Create the 'Mare MED IV' hub for `owner` (real content, no sample registrants). ValueError if it already exists / no card."""
+    name = "Mare MED IV Conference"
+    if Hub.query.filter_by(owner_user_id=owner.id, name=name).first():
+        raise ValueError("ההאב Mare MED IV כבר קיים אצלך")
+    cards = Card.query.filter_by(user_id=owner.id).all()
+    if not cards:
+        raise ValueError("נא ליצור כרטיס אישי לפני טעינת ההאב")
+    oc = next((c for c in cards if c.card_type == "business" and c.is_active), None) or next((c for c in cards if c.card_type == "business"), None) or cards[0]
+    serial = gen_hub_serial()
+    while Hub.query.filter_by(serial=serial).first():
+        serial = gen_hub_serial()
+    P = "/static/events/maremed/"
+    hub = Hub(owner_user_id=owner.id, owner_card_id=oc.id, name=name, serial=serial, hub_type="professional",
+              tagline="ישראל · יוון · מזרח הים התיכון", event_dates="13-15.10.2026", location="Herzog Tower, תל אביב",
+              loc_address="Yitzhak Sadeh St 6, Tel Aviv-Jaffa", organizer_names="BMP · RESTART",
+              auto_approve=True, is_published=True, template_id="corporate_classic", presence_mode="both",
+              loc_lat=32.0586, loc_lng=34.7893, loc_radius=250, presence_code=gen_presence_code(),
+              background_image_url=P + "banner.jpg", logo_url=P + "logo.png", card_enabled=True, card_use_hub_bg=True,
+              card_message="ברוכים הבאים ל-Mare MED IV", description="Mare MED IV Conference, תל אביב, 13-15 באוקטובר 2026")
+    db.session.add(hub); db.session.flush()
+    blocks = [
+        ("תוכנית הכנס", MAREMED_PROGRAM, "", "", ""),
+        ("דוברים", "כ-30 דוברים מהמגזר הציבורי, העסקי והביטחוני בישראל וביוון.", P + "speakers.jpg", "", ""),
+        ("נושאי הכנס", MAREMED_TOPICS + "\n\n" + MAREMED_ABOUT, P + "topics.jpg", "", ""),
+        ("נותני חסות ושותפים", "BMP · Bahas Gramatidis · Herzog Fox & Neeman · BDO · IAI · Enterprise Greece · שגרירות יוון בישראל ועוד", P + "sponsors.jpg", "", ""),
+        ("מפה והגעה", "Herzog Tower, Yitzhak Sadeh St 6, Tel Aviv-Jaffa", P + "map.jpg", "", "https://www.google.com/maps/search/?api=1&query=Herzog+Tower+Yitzhak+Sadeh+6+Tel+Aviv"),
+        ("המארגנים", "BMP Benny Moran Productions בשיתוף RESTART Innovation & Investment\nמיכל אשכנזי - Event Producer · ליאור רחמנוב - Head of Production · מייק ביילי - Content Director · רותי ברנר-תלמן - Partnership Manager", P + "organizers.jpg", "", ""),
+        ("לוח שיתופי", "", "", "open", ""),
+        ("צור קשר והרשמה", "Production@bmp.co.il\n03-6966000", "", "", "https://www.bmp.co.il/mare-med-israel-2026"),
+    ]
+    for i, (title, content, img, cat, link) in enumerate(blocks):
+        db.session.add(HubBlock(hub_id=hub.id, title=title, content=content, image_url=img, link_url=link, category=cat or "other", is_default=False, order=i, is_visible=True))
+    db.session.add(HubPresence(hub_id=hub.id, user_id=owner.id, card_id=oc.id, status="green", approval_status="approved", is_live=False, joined_at=time.time()))
+    db.session.commit()
+    return {"hub_id": hub.id, "name": hub.name, "serial": hub.serial}

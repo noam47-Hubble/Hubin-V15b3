@@ -23,6 +23,7 @@
       '<div class="set-sec">שפה</div>' +
       '<div class="set-row"><span class="lb">שפת האפליקציה</span><span style="display:flex;gap:6px"><button class="chip2 on" data-lang="he">עברית</button><button class="chip2" data-lang="en" style="opacity:.6">English</button></span></div>' +
       (me.is_admin ? '<div class="set-sec">האבי דוגמה (מנהל)</div><div class="set-row"><div><div class="lb">9 האבים לדוגמה עם נרשמים אקראיים</div><div class="sub">3 מקצועיים, 3 עסקיים, 3 חברתיים. הם שלך, ויש לך בהם זכויות ניהול מלאות.</div></div><span style="display:flex;gap:6px"><button class="btn sm primary" id="stDemo">טען</button><button class="btn sm danger" id="stDemoDel">מחק</button></span></div>' : '') +
+      (me.is_admin ? '<div class="set-row"><div><div class="lb">האב אמיתי: Mare MED IV</div><div class="sub">כנס 13-15.10.2026 עם תוכנית, דוברים, חסויות ומפה. ההאב שלך עם זכויות ניהול.</div></div><button class="btn sm primary" id="stMare">צור האב</button></div>' : '') +
       '<div class="set-sec">מנהל מערכת</div>' +
       '<div class="set-row"><span class="lb">' + (me.is_super ? 'מנהל-על פעיל במכשיר זה' : 'כניסת מנהל') + '</span><button class="btn sm" id="stSuper">' + (me.is_super ? 'סטטיסטיקה' : 'כניסה') + '</button></div>';
     const mod = H.modal({ title: 'הגדרות', body, actions: [{ label: 'סגור', cls: 'primary' }] });
@@ -40,6 +41,8 @@
       dm.onclick = async () => { dm.disabled = true; dm.textContent = 'טוען...'; try { const r = await H.post('/api/admin/demo', {}); H.toast('נוצרו ' + r.hubs.length + ' האבים לדוגמה'); mod.close(); H.go('home'); } catch (e) { H.toast(e.message, 6000); dm.disabled = false; dm.textContent = 'טען'; } };
       H.$('#stDemoDel', body).onclick = async () => { if (!(await H.confirm('למחוק את כל האבי הדוגמה שלך (והנרשמים האקראיים)?', 'מחיקה', true))) return; try { const r = await H.del('/api/admin/demo'); H.toast('נמחקו ' + r.removed + ' האבים'); mod.close(); H.go('home'); } catch (e) { H.toast(e.message); } };
     }
+    const mr = H.$('#stMare', body);
+    if (mr) mr.onclick = async () => { mr.disabled = true; try { await H.post('/api/admin/event-hub', {}); H.toast('ההאב Mare MED IV נוצר'); mod.close(); H.go('home'); } catch (e) { H.toast(e.message, 6000); mr.disabled = false; } };
     H.$('#stTour', body).onclick = () => { mod.close(); H.tour(); };
     H.$('#stPw', body).onclick = () => { mod.close(); passwordDialog(); };
     const del = H.$('#stPwDel', body);
